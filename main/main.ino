@@ -2,12 +2,16 @@ String html = "\
 <!DOCTYPE html>\
 <meta charset='UTF-8'>\
 <html>\
-<head><title>Ceci est un titre</title><head>\
+<head><title>Connectiprise</title><head>\
 <body>\
-coucou\
-<script>console.log('test')</script>\
+<button onchange='swap()'>Swap</button>\
+<script>function swap(){\
+  const req = new XMLHttpRequest();\
+  req.open('POST', '/swap', true);\
+  req.send("");\
+}</script>\
 </body>\
-</hml>\
+</html>\
 "
 // on appelle la bibliothèque qui gère le Wemos D1 mini
 #include <ESP8266WiFi.h> 
@@ -19,7 +23,10 @@ coucou\
 #include <WiFiClient.h> 
 
 //  Definition du WiFi 
-const char *nomDuReseau = "Connectriprise";     // Nom du réseau wifi du petit bot
+
+bool val = false;
+
+const char *nomDuReseau = "Connectiprise";     // Nom du réseau wifi du petit bot
 const char *motDePasse = "";    // Mot de passe du réseau wifi du petit bot
 ESP8266WebServer monServeur(80); 
 
@@ -28,6 +35,13 @@ void requestHandler(){
         // redactionPageWeb();
         monServeur.send(200, "text/html", html);
     });
+
+    monServeur.on("/swap", HTTP_GET, []() {  
+      val = !val;
+      Serial.println(val);
+      digitalWrite(14, val);
+      monServeur.send(200, "text/html", html);
+  });
 }
 
 void configDuWifi(){  // Fonction de configuratio du Wifi
@@ -43,7 +57,10 @@ void configDuWifi(){  // Fonction de configuratio du Wifi
 
 
 void setup(){
+    Serial.begin(9600);
     configDuWifi();
+    pinMode(14, OUTPUT);
+    digitalWrite(14, 0);
 }
 
 void loop(){
@@ -59,7 +76,7 @@ void loop(){
 // Voir sur http://wikidebrouillard.org/index.php?title=Petit_Bot_un_robot_controlable_en_Wifi
 // Ce programme est inspire de : http://www.esp8266.com/viewtopic.php?f=29&t=6419#sthash.gd1tJhwU.dpuf
 // Sous licence CC-By-Sa
-// Par des gens bien
+// Par des gens bien mais qui on perdu
 
 // on appelle la bibliothèque qui gère le Wemos D1 mini
 #include <ESP8266WiFi.h> 
