@@ -1,20 +1,11 @@
-String html = "\
-<!DOCTYPE html>\
-<meta charset='UTF-8'>\
-<html>\
-<head><title>Connectiprise</title><head>\
-<body>\
-<button onchange='swap()'>Swap</button>\
-<script>function swap(){\
-  const req = new XMLHttpRequest();\
-  req.open('POST', '/swap', true);\
-  req.send("");\
-}</script>\
-</body>\
-</html>\
-"
+String html_main = "<!DOCTYPE html><html><head><meta charset='UTF-8' name='viewport' content='width=device-width, initial-scale=1'><title>Connectiprise</title><style>body{background-color: #3D3D3D;color: white;font-family: Arial, Helvetica, sans-serif;}.side-panel{background-color: #1D1D1D;position: absolute;top: 0px;left: 0px;height: 100%;width: 150px;}.name{font-size: 20px;width: 100%;margin-top: 10px;text-align: center;}.separator{width: 100%;height: 1px;margin-top: 10px;background-color: white;}.side-menu{padding-left: 0px;width: 100%;}.side-menu > li {text-align: center;list-style-type: none;list-style-position: inside;height: 30px;}.side-menu > li > a{color: inherit;vertical-align: middle;text-decoration: none;}.side-menu :hover{background-color: #2d2d2d;}.content-container{margin-left: 160px;margin-top: 10px;}</style><head><body><div class='side-panel'><div class='name'>Connectiprise</div><div class='separator'></div><ul class='side-menu'><li><a href='/connection'>Connection</a></li><li><a href='/parametre'>Parametres</a></li><li><a href='/statistique'>Statistiques</a></li></ul></div><!-- <iframe class='content-container' src='./connection.html'></iframe> --><div class='content-container'>{{{content}}}</div></body></html>";
+String html_param = "<style>.content-title{color: white;}.switch {position: relative;display: inline-block;width: 60px;height: 34px;}.switch input {display:none;}.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #BB2500;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: '';height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #408F00;}input:focus + .slider {box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}</style><div><span class='content-title'>Etats des prises</span><div><div class='prise' id='p1'><label class='switch'><input type='checkbox' id='c1' onclick='swap()' {{{ischecked}}}><span class='slider round'></span></label><span>Details</span></div></div></div><script>function swap(){var xhr = new XMLHttpRequest();xhr.open('POST', '/swap1', true);xhr.send(null);}</script>";
+String html_stat = "";
+String html_connec = "<span>{{{isConnected}}}</span><form action='/submitConnectionForm'><input type='text' name='ssid' placeholder='SSID'/><input type='text' name='password' placeholder='password'/><input type='submit' value='Submit'/></form>";
+
 // on appelle la bibliothèque qui gère le Wemos D1 mini
 #include <ESP8266WiFi.h> 
+#include <ESP8266HTTPClient.h>
 
 // Gestion du Wifi
 #include <ESP8266WebServer.h>
@@ -22,226 +13,116 @@ String html = "\
 #include <ESP8266mDNS.h>
 #include <WiFiClient.h> 
 
-//  Definition du WiFi 
+// Definition du WiFi 
 
 bool val = false;
+bool isConnected = false;
 
-const char *nomDuReseau = "Connectiprise";     // Nom du réseau wifi du petit bot
-const char *motDePasse = "";    // Mot de passe du réseau wifi du petit bot
+const char ssid[] = "belkin.738";
+const char password[] = "7e2a4769";
+
+const char *nomDuReseau = "Connectiprise"; // Nom du réseau wifi du petit bot
+const char *motDePasse = ""; // Mot de passe du réseau wifi du petit bot
 ESP8266WebServer monServeur(80); 
 
 void requestHandler(){
-    monServeur.on("/", HTTP_GET, []() {  
-        // redactionPageWeb();
-        monServeur.send(200, "text/html", html);
-    });
+  monServeur.on("/", HTTP_GET, []() { 
+    // redactionPageWeb();
+    monServeur.send(200, "text/html", templateParser(html_main, "content", ""));
+  });
 
-    monServeur.on("/swap", HTTP_GET, []() {  
-      val = !val;
-      Serial.println(val);
-      digitalWrite(14, val);
-      monServeur.send(200, "text/html", html);
+  monServeur.on("/swap1", HTTP_POST, []() {
+    val = !val;
+    // val = (monServeur.arg(0) == "checked=1") ? true : false; a remettre pour le multi
+    digitalWrite(14, val);
+    monServeur.send(200, "text/html", "");
+  });
+
+  monServeur.on("/parametre", HTTP_GET, []() {
+    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_param, "ischecked" ,((val == true)? " checked " : "" ))));
+  });
+
+  monServeur.on("/statistique", HTTP_GET, [](){
+    monServeur.send(200, "text/html", templateParser(html_main, "content", html_stat));
+  });
+
+  monServeur.on("/connection", HTTP_GET, [](){
+    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_connec, "isConnected" ,((isConnected == true)? "Vous etes connecte" : "Vous n etes pas connecte"))));    
+  });
+
+  monServeur.on("/submitConnectionForm", HTTP_POST, [](){
+    Serial.println(monServeur.arg(0) + " " + monServeur.arg(1));
   });
 }
 
-void configDuWifi(){  // Fonction de configuratio du Wifi
-    WiFi.mode(WIFI_AP); // le wemos est en mode "Point d'Accès" (il déploie un réseau wifi)
-    WiFi.softAP(nomDuReseau, motDePasse, 2); // on démarre le "Point d'Accès".
-    MDNS.begin(nomDuReseau);                 // gérer les DNS ce qui rendra votre petit bot accessible
-    MDNS.addService("http", "tcp", 80);      // via http://nomDuReseau.local
-    IPAddress monIP = WiFi.softAPIP();       // on récupère l'adresse IP du petit Bot
-    requestHandler();
-    monServeur.begin();                          //Démarrage du monServeur
-    return;                                  // on retourne à l'endroit ou la fonction a été appelée.
-}
-
-
-void setup(){
-    Serial.begin(9600);
-    configDuWifi();
-    pinMode(14, OUTPUT);
-    digitalWrite(14, 0);
-}
-
-void loop(){
-    monServeur.handleClient();
-}
-
-/*
-
-///////////////
-// Petit Bot //
-///////////////
-// Un programme pédagogique des petits débrouillards ?=+ pour gérer le robot "Petit Bot" 
-// Voir sur http://wikidebrouillard.org/index.php?title=Petit_Bot_un_robot_controlable_en_Wifi
-// Ce programme est inspire de : http://www.esp8266.com/viewtopic.php?f=29&t=6419#sthash.gd1tJhwU.dpuf
-// Sous licence CC-By-Sa
-// Par des gens bien mais qui on perdu
-
-// on appelle la bibliothèque qui gère le Wemos D1 mini
-#include <ESP8266WiFi.h> 
-
-// Gestion du Wifi
-#include <ESP8266WebServer.h>
-#include <DNSServer.h>
-#include <ESP8266mDNS.h>
-#include <WiFiClient.h> 
-
-//  Definition du WiFi 
-const char *nomDuReseau = "petitbot";     // Nom du réseau wifi du petit bot
-const char *motDePasse = "";    // Mot de passe du réseau wifi du petit bot
-// ATTENTION - le mot de passe doit faire soit 0 caractères soit 8 ou plus sinon
-// La configuration de votre réseau wifi ne se fera pas (ni mot de passe, ni nom de réseau !).
-//création du monServeur
-ESP8266WebServer monServeur(80);               // Création de l'objet monServeur
-
-//Gestion des servomoteurs
-#include <Servo.h>   //appel de la bibliothèque qui gère les servomoteurs
-// création des servomoteurs 
-Servo servogauche;   // Nom du servo qui gère la première roue
-Servo servodroit;    // Seconde roue
-
-//déclaration des Variables
-//int --- en cours 
-int val = -1; // Val nous sert à stocker la commande de l'utilisateur (stop, avance, ...).
-
-void setup(){
-  delay(1000);
-  Serial.begin(9600); // Ouvre une connexion série pour monitorer le fonctionnement du code quand on reste branché a l'ordinateur
-  Serial.println();
-  Serial.println();  
-  configDuWifi();
-  servodroit.detach();  // Place les servos hors tension
-  servogauche.detach(); 
-  pinMode(LED_BUILTIN, OUTPUT);    //met la led du Wemos en sortie
-  digitalWrite(LED_BUILTIN, LOW);  //met la led du Wemos sur le niveau bas ce qui l'allume.
-}
-
-void loop(){
-    val = -1;
-    monServeur.handleClient();
-}
-
-///////////////////////GESTION DES INSTRUCTIONS///////////////////////////
-void GestionDesClics() {
-  monServeur.on("/avance", HTTP_GET, []() {
-  val = 1;
-  Serial.println("avance");    
-  redactionPageWeb();
-  });
-
-  monServeur.on("/recule", HTTP_GET, []() {
-  val = 2;
-  Serial.println("recule");
-  redactionPageWeb();
-  });
-
-  monServeur.on("/droite", HTTP_GET, []() {
-  val = 4;
-  Serial.println("droite");
-  redactionPageWeb();
-  });
-  
-  monServeur.on("/gauche", HTTP_GET, []() {
-  val = 3;
-  Serial.println("gauche");
-  redactionPageWeb();
-  });
-
-  monServeur.on("/stop", HTTP_GET, []() {
-  val = 0;
-  Serial.println("stop");
-  redactionPageWeb();
-  });
-  
-  monServeur.on("/", HTTP_GET, []() {
-  val = -1;
-  redactionPageWeb();
-  });
-
-}
-
-///////////////////////////LA PAGE WEB DE CONROLE DU PETIT BOT/////////////////////////////////////////
-void redactionPageWeb(){
-  // Prépare la page web de réponse (le code HTML sera écrit dans la chaine de caractère "pageWeb").
-  String pageWeb = "<!DOCTYPE HTML>\r\n";
-  pageWeb += "<html>\r\n";
-  pageWeb += "<center>";    //On ouvre la balise qui va centrer les boutons
-  pageWeb += "<h1 style=\"font-size:300%;\"\> Le petit bot ";
-  pageWeb += "<style type=\"text/css\">  body { color: #212121; background-color: #CC0C59 } </style>";
-
-  // On finalise l'écriture de la page Web et on donne les instructions aux servos
-  pageWeb += instruction(val); // pour cela on appelle la fonction "instruction"
-
-  // On termine l'écriture de la page Web
-  pageWeb += "</h1>";
-  pageWeb += "<br>"; //aller à la ligne
-  pageWeb += "<br>"; //aller à la ligne
-  pageWeb += "<a href=\"/stop\"\"><button style=\"font-size:200%; width: 18%; background-color:#0CCC16; border-radius: 12px\"\>Stop </button></a>\r\n";      // créer un bouton "Stop", qui envoie sur l'URL /stop
-  pageWeb += "<a href=\"/avance\"\"><button style=\"font-size:200%; width: 18%; background-color:#0CCC16; border-radius: 12px\"\>Avance </button></a>\r\n";  // créer un bouton "Avance"...
-  pageWeb += "<a href=\"/recule\"\"><button style=\"font-size:200%; width: 18%; background-color:#0CCC16; border-radius: 12px\"\>Recule </button></a>\r\n";
-  pageWeb += "<a href=\"/droite\"\"><button style=\"font-size:200%; width: 18%; background-color:#0CCC16; border-radius: 12px\"\>Droite </button></a>\r\n";
-  pageWeb += "<a href=\"/gauche\"\"><button style=\"font-size:200%; width: 18%; background-color:#0CCC16; border-radius: 12px\"\>Gauche </button></a><br />\r\n";
-  pageWeb += "</center>"; // tout est centré sur la page
-  pageWeb += "</html>\n"; //Fin de la page Web
-
-  // On envoie la page web
-  monServeur.send(200, "text/html", pageWeb);
-  delay(1);
-}
-
-///////////////////INSTRUCTIONS/////////////////////////////////////////////////////////
-String instruction(int valeur){ //Cette fonction traite les instructions qui sont reçues
-  int gauche;                           // Variable dont la valeur 180 ou 0 fera tourner le servo gauche dans un sens ou l'autre
-  int droite;                           // Idem pour le servo droit
-  String completePage;                  // Déclaration de la chaine de caractère qui sera renvoyée par cette fonction pour compléter la page web 
-  switch(valeur){                       // En fonction de la variable valeur on va donner un ordre aux servos 
-    case 0 :                            // et un texte à la chaine de caractère "completePage"
-    completePage = " est a l’arrêt ";
-    droite = 90;
-    gauche = 90;
-    break;
-    case 1 :
-    completePage = " avance ";
-    droite = 180;
-    gauche = 0;
-    break;
-    case 2 :
-    completePage = " recule ";
-    droite = 0;
-    gauche = 180;
-    break;
-    case 3 :
-    completePage = " tourne a gauche ";
-    droite = 180;
-    gauche = 180;
-    break;
-    case 4 :
-    completePage = " tourne a droite ";
-    droite = 0;
-    gauche = 0;
-    break;
-    // que faire du cas ou val = -1 ? marquer ici ce qui doit être fait.
-  }
-  servogauche.attach(D1);     // Broche D1
-  servodroit.attach(D2);      // Broche D2
-  servogauche.write(gauche); 
-  servodroit.write(droite);
-  return completePage;        // on renvoie la chaine de caractère pour compléter la page web
-}
-////////////////////////CONFIGURATION WIFI///////////////////////////////////////////////
-void configDuWifi(){  // Fonction de configuratio du Wifi
+void configDuWifi(){ // Fonction de configuratio du Wifi
   WiFi.mode(WIFI_AP); // le wemos est en mode "Point d'Accès" (il déploie un réseau wifi)
   WiFi.softAP(nomDuReseau, motDePasse, 2); // on démarre le "Point d'Accès".
-  MDNS.begin(nomDuReseau);                 // gérer les DNS ce qui rendra votre petit bot accessible
-  MDNS.addService("http", "tcp", 80);      // via http://nomDuReseau.local
-  IPAddress monIP = WiFi.softAPIP();       // on récupère l'adresse IP du petit Bot
-  Serial.print("Adresse IP de ce Point d'Accès : ");
-  Serial.println(monIP);                   // on l'écrit sur le moniteur série
-  GestionDesClics();
-  monServeur.begin();                          //Démarrage du monServeur
-  Serial.println("Serveur HTTP démarré");
-  return;                                  // on retourne à l'endroit ou la fonction a été appelée.
+  MDNS.begin(nomDuReseau); // gérer les DNS ce qui rendra votre petit bot accessible
+  MDNS.addService("http", "tcp", 80); // via http://nomDuReseau.local
+  IPAddress monIP = WiFi.softAPIP(); // on récupère l'adresse IP du petit Bot
+  requestHandler();
+  monServeur.begin(); //Démarrage du monServeur
+  return; // on retourne à l'endroit ou la fonction a été appelée.
 }
 
-*/
+void connectWifi(){
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("");
+    Serial.println("WiFi connected");
+    isConnected = true;
+}
+
+void beginServer(){
+  requestHandler();
+  monServeur.begin();
+
+      // Print the IP address
+  Serial.print("Server is open\nUse this URL : ");
+  Serial.print("http://");
+  Serial.print(WiFi.localIP());
+  Serial.println("/");
+}
+
+
+void setup(){
+  Serial.begin(115200);
+  // configDuWifi();
+  // monServeur.stop();
+  connectWifi();
+  pinMode(14, OUTPUT);
+  digitalWrite(14, 0);
+
+  //test google sheet api v4
+  // Serial.println("Debut de la requete");
+  // HTTPClient http;
+  // http.begin("https://sheets.googleapis.com/v4/spreadsheets/1pKn7I-hutNm8xxxcroU5slIk2geOH_B5IETeXtLjRn4/values/A1:A1");
+  // Serial.println(http.GET());
+  // String payload = http.getString();
+  // Serial.println(payload);
+  // Serial.println("fin de la requete");
+  // http.end();
+
+  beginServer();
+}
+
+void loop(){
+  monServeur.handleClient();
+}
+
+String templateParser(String s, String key, String t){
+  while (s.indexOf("{{{" + key + "}}}") != -1){
+    int b = s.indexOf("{{{" + key + "}}}");
+    int e = b + ("{{{" + key + "}}}").length();
+    s = s.substring(0, b) + t + s.substring(e);
+  }
+  return s;
+}

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<meta charset='UTF-8'>
 <html>
-<head>
-  <title>Connectiprise</title>
+  <head>
+    <meta charset='UTF-8' name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Connectiprise</title>
 
   <style>
     body{
       background-color: #3D3D3D;
+      color: white;
+      font-family: Arial, Helvetica, sans-serif;
     }
     .side-panel{
       background-color: #1D1D1D;
@@ -15,8 +17,6 @@
       left: 0px;
       height: 100%;
       width: 150px;
-      color: white;
-      font-family: Arial, Helvetica, sans-serif;
     }
     .name{
       font-size: 20px;
@@ -31,40 +31,55 @@
       background-color: white;
     }
     .side-menu{
-      
+      padding-left: 0px;
       width: 100%;
     }
     .side-menu > li {
+      text-align: center;
+      list-style-type: none;
+      list-style-position: inside;
       height: 30px;
     }
-    .side-menu > li :hover{
-      background-color: #C50000;
+    .side-menu > li > a{
+      color: inherit;
+      vertical-align: middle;
+      text-decoration: none;
+    }
+    .side-menu :hover{
+      background-color: #2d2d2d;
+    }
+
+    .content-container{
+      margin-left: 160px;
+      margin-top: 10px;
     }
   </style>
 
   <head>
 <body>
 
-  <div class="side-panel">
-    <div class="name">Connectiprise</div>
-    <div class="separator"></div>
-    <ul class="side-menu">
+  <div class='side-panel'>
+    <div class='name'>Connectiprise</div>
+    <div class='separator'></div>
+    <ul class='side-menu'>
       <li>
-        Parametres
+          <a href='/connection'>
+              Connection
+          </a>
       </li>
       <li>
-        Statistiques
+        <a href='/parametre'>
+            Parametres
+        </a>
+      </li>
+      <li>
+        <a href='/statistique'>
+          Statistiques
+        </a>
       </li>  
     </ul>
   </div>
-
-
-
-
-<script>function swap(){
-  const req = new XMLHttpRequest();
-  req.open('POST', '/swap', true);
-  req.send("");
-}</script>
+  <!-- <iframe class='content-container' src='./connection.html'></iframe> -->
+  <div class='content-container'>{{{content}}}</div>
 </body>
 </html>
