@@ -81,5 +81,16 @@
   </div>
   <!-- <iframe class='content-container' src='./connection.html'></iframe> -->
   <div class='content-container'>{{{content}}}</div>
+  <script>
+    var date = new Date();
+    var time = {
+      hours: date.toTimeString().slice(0,2), 
+      minutes: date.toTimeString().slice(3,5), 
+      seconds: date.toTimeString().slice(6,8)
+      };
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/updateDate', true);
+    xhr.send(time);
+  </script>
 </body>
 </html>
