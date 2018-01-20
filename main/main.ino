@@ -13,21 +13,23 @@ String html_connec = "<span>{{{isConnected}}}</span><form action='/submitConnect
 #include <ESP8266mDNS.h>
 #include <WiFiClient.h> 
 
+//Clock
+int currSec = 0;
+int currMin = 0;
+int currHou = 0;
+unsigned long prevTime = 0;
+unsigned long diff = 0;
 // Definition du WiFi 
-
-char currSec = 0;
-char currMin = 0;
-char currHou = 0;
 
 bool val = false;
 bool isConnected = false;
 
 const char ssid[] = "Livebox-092d";
-// const char password[] = "7e2a4769";
 const char password[] = "wifieasy";
+// const char password[] = "7e2a4769";
 
-const char *nomDuReseau = "Connectiprise"; // Nom du réseau wifi du petit bot
-const char *motDePasse = ""; // Mot de passe du réseau wifi du petit bot
+char *nomDuReseau = "Connectiprise"; // Nom du réseau wifi du petit bot
+char *motDePasse = ""; // Mot de passe du réseau wifi du petit bot
 ESP8266WebServer monServeur(80); 
 
 void requestHandler(){
@@ -56,16 +58,26 @@ void requestHandler(){
   });
 
   monServeur.on("/submitConnectionForm", HTTP_POST, [](){
-    ssid = postParser(monServeur.arg(0), "ssid");
-    password = postParser(monServeur.arg(0), "password");
+
+    String tmp = postParser(monServeur.arg(0), "ssid");
+    char* test = new char[10];
+
+    delete(test);
+
     monServeur.send(200, "text/html", "");    
   });
 
   monServeur.on("/updateDate", HTTP_POST, [](){
-    currHou = jsonParser(monServeur.arg(0), "hours");
-    currMin = jsonParser(monServeur.arg(0), "minutes");
-    currSec = jsonParser(monServeur.arg(0), "seconds");
+    currHou = (jsonParser(monServeur.arg(0), "hours")).toInt();
+    currMin = (jsonParser(monServeur.arg(0), "minutes")).toInt();
+    currSec = (jsonParser(monServeur.arg(0), "seconds")).toInt();
+    Serial.println("time updated");
     monServeur.send(200, "text/html", "");
+  });
+
+  monServeur.on("/debug/time", HTTP_POST, [](){
+    Serial.println(currHou + String(" : ") + currMin + String(" : ") + currSec);
+    monServeur.send(200, "text/html", "");    
   });
 }
 
@@ -129,7 +141,28 @@ void setup(){
 }
 
 void loop(){
+  unsigned long temp = millis();
+  diff += temp - prevTime;
+  if(diff > 1000){
+    currSec++;
+    diff -= 1000;
+  }
+  if(currSec > 59){
+    currMin++;
+    currSec=0;
+  }
+  if(currMin > 59){
+    currHou++;
+    currMin=0;
+  }
+  if(currHou > 23){
+    currHou=0;
+  }
+  prevTime = temp;
+
+
   monServeur.handleClient();
+  monServeur.send(200, "text/event-stream", "coucou");
 }
 
 String templateParser(String s, String key, String t){
