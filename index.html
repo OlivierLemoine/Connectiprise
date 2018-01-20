@@ -90,7 +90,7 @@
       };
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/updateDate', true);
-    xhr.send(time);
+    xhr.send(JSON.stringify(time));
   </script>
 </body>
 </html>
