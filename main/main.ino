@@ -28,6 +28,10 @@ const char ssid[] = "Livebox-092d";
 const char password[] = "wifieasy";
 // const char password[] = "7e2a4769";
 
+//google
+String googleSheetKey = "";
+String googleAPIKey = "AIzaSyDurvFbr7YphjCduCd0QxRq2nQ2l_IXjc4";
+
 char *nomDuReseau = "Connectiprise"; // Nom du réseau wifi du petit bot
 char *motDePasse = ""; // Mot de passe du réseau wifi du petit bot
 ESP8266WebServer monServeur(80); 
@@ -79,6 +83,8 @@ void requestHandler(){
     Serial.println(currHou + String(" : ") + currMin + String(" : ") + currSec);
     monServeur.send(200, "text/html", "");    
   });
+
+  
 }
 
 void configDuWifi(){ // Fonction de configuratio du Wifi
