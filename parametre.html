@@ -55,7 +55,7 @@
     <div>
         <div class='prise' id='p1'>
             <label class='switch'>
-                <input type='checkbox' id='c1' onclick='swap()' {{{ischecked}}}>
+                <input type='checkbox' id='c1' onclick='swap(event, 0)' {{{ischecked}}}>
                 <span class='slider round'></span>
             </label>
             <span>Details</span>
@@ -64,9 +64,14 @@
 </div>
 
 <script>
-    function swap(){
+    function swap(e, i){
+        var payload = {
+                num : i, 
+                val : e.target.checked
+            };
+        console.log(payload);
         var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/swap1', true);
-        xhr.send(null);
+        xhr.open('POST', '/swap', true);
+        xhr.send(JSON.stringify(payload));
     }
 </script>

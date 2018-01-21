@@ -1,7 +1,7 @@
 String html_main = "<!DOCTYPE html><html><head><meta charset='UTF-8' name='viewport' content='width=device-width, initial-scale=1'><title>Connectiprise</title><style>body{background-color: #3D3D3D;color: white;font-family: Arial, Helvetica, sans-serif;}.side-panel{background-color: #1D1D1D;position: absolute;top: 0px;left: 0px;height: 100%;width: 150px;}.name{font-size: 20px;width: 100%;margin-top: 10px;text-align: center;}.separator{width: 100%;height: 1px;margin-top: 10px;background-color: white;}.side-menu{padding-left: 0px;width: 100%;}.side-menu > li {text-align: center;list-style-type: none;list-style-position: inside;height: 30px;}.side-menu > li > a{color: inherit;vertical-align: middle;text-decoration: none;}.side-menu :hover{background-color: #2d2d2d;}.content-container{margin-left: 160px;margin-top: 10px;}</style><head><body><div class='side-panel'><div class='name'>Connectiprise</div><div class='separator'></div><ul class='side-menu'><li><a href='/connection'>Connection</a></li><li><a href='/parametre'>Parametres</a></li><li><a href='/statistique'>Statistiques</a></li></ul></div><!-- <iframe class='content-container' src='./connection.html'></iframe> --><div class='content-container'>{{{content}}}</div><script>var date = new Date();var time = {hours: date.toTimeString().slice(0,2), minutes: date.toTimeString().slice(3,5), seconds: date.toTimeString().slice(6,8)};var xhr = new XMLHttpRequest();xhr.open('POST', '/updateDate', true);xhr.send(JSON.stringify(time));</script></body></html>";
-String html_param = "<style>.content-title{color: white;}.switch {position: relative;display: inline-block;width: 60px;height: 34px;}.switch input {display:none;}.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #BB2500;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: '';height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #408F00;}input:focus + .slider {box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}</style><div><span class='content-title'>Etats des prises</span><div><div class='prise' id='p1'><label class='switch'><input type='checkbox' id='c1' onclick='swap()' {{{ischecked}}}><span class='slider round'></span></label><span>Details</span></div></div></div><script>function swap(){var xhr = new XMLHttpRequest();xhr.open('POST', '/swap1', true);xhr.send(null);}</script>";
+String html_param = "<style>.content-title{color: white;}.switch {position: relative;display: inline-block;width: 60px;height: 34px;}.switch input {display:none;}.slider {position: absolute;cursor: pointer;top: 0;left: 0;right: 0;bottom: 0;background-color: #BB2500;-webkit-transition: .4s;transition: .4s;}.slider:before {position: absolute;content: '';height: 26px;width: 26px;left: 4px;bottom: 4px;background-color: white;-webkit-transition: .4s;transition: .4s;}input:checked + .slider {background-color: #408F00;}input:focus + .slider {box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before {-webkit-transform: translateX(26px);-ms-transform: translateX(26px);transform: translateX(26px);}</style><div><span class='content-title'>Etats des prises</span><div><div class='prise' id='p1'><label class='switch'><input type='checkbox' id='c1' onclick='swap(event, 0)' {{{ischecked}}}><span class='slider round'></span></label><span>Details</span></div></div></div><script>function swap(e, i){var payload = {num : i, val : e.target.checked};console.log(payload);var xhr = new XMLHttpRequest();xhr.open('POST', '/swap', true);xhr.send(JSON.stringify(payload));}</script>";
 String html_stat = "";
-String html_connec = "<span>{{{isConnected}}}</span><form action='/submitConnectionForm'><input type='text' name='ssid' placeholder='SSID'/><input type='text' name='password' placeholder='password'/><input type='submit' value='Submit'/></form>";
+String html_connec = "<span>{{{isConnected}}}</span><form action='/submitConnectionForm'><input type='text' name='ssid' placeholder='SSID'/><input type='text' name='password' placeholder='password'/><input type='submit' value='Submit'/></form><form action='/submitSheetKey'><input type='text' name='key' placeholder='Google Sheet Key'/><input type='submit' value='Submit'/></form>";
 
 // on appelle la bibliothèque qui gère le Wemos D1 mini
 #include <ESP8266WiFi.h> 
@@ -21,12 +21,17 @@ unsigned long prevTime = 0;
 unsigned long diff = 0;
 // Definition du WiFi 
 
-bool val = false;
+bool plugIsOn[6] = {false, false, false, false, false, false};
 bool isConnected = false;
 
-const char ssid[] = "Livebox-092d";
-const char password[] = "wifieasy";
-// const char password[] = "7e2a4769";
+// const char ssid[] = "Livebox-092d";
+// const char password[] = "wifieasy";
+const char ssid[] = "belkin.738";
+const char password[] = "7e2a4769";
+
+//google
+String googleSheetKey = "";
+String googleAPIKey = "AIzaSyDurvFbr7YphjCduCd0QxRq2nQ2l_IXjc4";
 
 char *nomDuReseau = "Connectiprise"; // Nom du réseau wifi du petit bot
 char *motDePasse = ""; // Mot de passe du réseau wifi du petit bot
@@ -38,15 +43,16 @@ void requestHandler(){
     monServeur.send(200, "text/html", templateParser(html_main, "content", ""));
   });
 
-  monServeur.on("/swap1", HTTP_POST, []() {
-    val = !val;
-    // val = (monServeur.arg(0) == "checked=1") ? true : false; a remettre pour le multi
-    digitalWrite(14, val);
+  monServeur.on("/swap", HTTP_POST, []() {
+    Serial.println(monServeur.arg(0));
+    int plugID = jsonParser(monServeur.arg(0), "num").toInt();
+    plugIsOn[plugID] = (jsonParser(monServeur.arg(0), "val") == "true") ? true : false;
+    digitalWrite(14, plugIsOn[plugID]);//pas fini
     monServeur.send(200, "text/html", "");
   });
 
   monServeur.on("/parametre", HTTP_GET, []() {
-    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_param, "ischecked" ,((val == true)? " checked " : "" ))));
+    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_param, "ischecked" ,((plugIsOn[0] == true)? " checked " : "" ))));
   });
 
   monServeur.on("/statistique", HTTP_GET, [](){
@@ -59,9 +65,9 @@ void requestHandler(){
 
   monServeur.on("/submitConnectionForm", HTTP_POST, [](){
 
-    String tmp = postParser(monServeur.arg(0), "ssid");
+    String tmp = queryParser(monServeur.arg(0), "ssid");
     char* test = new char[10];
-
+    tmp.toCharArray(test, 10);
     delete(test);
 
     monServeur.send(200, "text/html", "");    
@@ -78,6 +84,11 @@ void requestHandler(){
   monServeur.on("/debug/time", HTTP_POST, [](){
     Serial.println(currHou + String(" : ") + currMin + String(" : ") + currSec);
     monServeur.send(200, "text/html", "");    
+  });
+
+  monServeur.on("/submitSheetKey", HTTP_POST, [](){
+    googleAPIKey = queryParser(monServeur.arg(0), "key");
+    monServeur.send(200, "text/html", "");
   });
 }
 
@@ -162,7 +173,6 @@ void loop(){
 
 
   monServeur.handleClient();
-  monServeur.send(200, "text/event-stream", "coucou");
 }
 
 String templateParser(String s, String key, String t){
@@ -176,12 +186,19 @@ String templateParser(String s, String key, String t){
 
 String jsonParser(String s, String key){
   int pos = s.indexOf('"' + key + '"');
-  pos += key.length() + 4;
-  int fin = s.indexOf('"', pos);
+  pos += key.length() + 3;
+  int fin = s.indexOf(',', pos);
+  if(fin == -1)
+    fin = s.indexOf("}", pos);
+
+  if(s.charAt(fin-1) == '"'){
+    pos++;
+    fin--;
+  }
   String res = s.substring(pos, fin);
   return res;
 }
-String postParser(String s, String key){
+String queryParser(String s, String key){
   int pos = s.indexOf(key + '=');
   pos += key.length() + 2;
   int fin = s.indexOf('&', pos);
