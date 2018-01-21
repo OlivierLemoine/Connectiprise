@@ -87,7 +87,7 @@ void requestHandler(){
   });
 
   monServeur.on("/submitSheetKey", HTTP_GET, [](){
-    googleAPIKey = monServeur.arg(0)
+    googleAPIKey = monServeur.arg(0);
     monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_connec, "isConnected" ,((isConnected == true)? "Vous etes connecte" : "Vous n etes pas connecte"))));    
   });
 }
