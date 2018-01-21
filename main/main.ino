@@ -26,8 +26,10 @@ bool isConnected = false;
 
 // const char ssid[] = "Livebox-092d";
 // const char password[] = "wifieasy";
-const char ssid[] = "belkin.738";
-const char password[] = "7e2a4769";
+// const char ssid[] = "belkin.738";
+// const char password[] = "7e2a4769";
+
+String ssid, password;
 
 //google
 String googleSheetKey = "";
@@ -63,14 +65,12 @@ void requestHandler(){
     monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_connec, "isConnected" ,((isConnected == true)? "Vous etes connecte" : "Vous n etes pas connecte"))));    
   });
 
-  monServeur.on("/submitConnectionForm", HTTP_POST, [](){
+  monServeur.on("/submitConnectionForm", HTTP_GET, [](){
+    ssid = monServeur.arg(0);
+    password = monServeur.arg(1);
 
-    String tmp = queryParser(monServeur.arg(0), "ssid");
-    char* test = new char[10];
-    tmp.toCharArray(test, 10);
-    delete(test);
-
-    monServeur.send(200, "text/html", "");    
+    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_connec, "isConnected" ,((isConnected == true)? "Vous etes connecte" : "Vous n etes pas connecte"))));    
+    connectWifi();
   });
 
   monServeur.on("/updateDate", HTTP_POST, [](){
@@ -86,9 +86,9 @@ void requestHandler(){
     monServeur.send(200, "text/html", "");    
   });
 
-  monServeur.on("/submitSheetKey", HTTP_POST, [](){
-    googleAPIKey = queryParser(monServeur.arg(0), "key");
-    monServeur.send(200, "text/html", "");
+  monServeur.on("/submitSheetKey", HTTP_GET, [](){
+    googleAPIKey = monServeur.arg(0)
+    monServeur.send(200, "text/html", templateParser(html_main, "content", templateParser(html_connec, "isConnected" ,((isConnected == true)? "Vous etes connecte" : "Vous n etes pas connecte"))));    
   });
 }
 
@@ -98,16 +98,17 @@ void configDuWifi(){ // Fonction de configuratio du Wifi
   MDNS.begin(nomDuReseau); // gérer les DNS ce qui rendra votre petit bot accessible
   MDNS.addService("http", "tcp", 80); // via http://nomDuReseau.local
   IPAddress monIP = WiFi.softAPIP(); // on récupère l'adresse IP du petit Bot
-  requestHandler();
-  monServeur.begin(); //Démarrage du monServeur
-  return; // on retourne à l'endroit ou la fonction a été appelée.
+  Serial.print("Server is open\nUse this URL : ");
+  Serial.print("http://");
+  Serial.print(monIP);
+  Serial.println("/");
 }
 
 void connectWifi(){
     Serial.print("Connecting to ");
     Serial.println(ssid);
 
-    WiFi.begin(ssid, password);
+    WiFi.begin(ssid.c_str(), password.c_str());
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -115,26 +116,25 @@ void connectWifi(){
     }
     Serial.println("");
     Serial.println("WiFi connected");
+      // Print the IP address
+    Serial.print("Server is open\nUse this URL : ");
+    Serial.print("http://");
+    Serial.print(WiFi.localIP());
+    Serial.println("/");
     isConnected = true;
 }
 
 void beginServer(){
   requestHandler();
   monServeur.begin();
-
-      // Print the IP address
-  Serial.print("Server is open\nUse this URL : ");
-  Serial.print("http://");
-  Serial.print(WiFi.localIP());
-  Serial.println("/");
+  
+  configDuWifi();
 }
 
 
 void setup(){
   Serial.begin(115200);
-  // configDuWifi();
-  // monServeur.stop();
-  connectWifi();
+  Serial.println("");
   pinMode(14, OUTPUT);
   digitalWrite(14, 0);
 
