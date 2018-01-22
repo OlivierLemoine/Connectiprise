@@ -49,21 +49,149 @@
         -ms-transform: translateX(26px);
         transform: translateX(26px);
       }
+      .prise{
+        float: left;
+      }
+      .priseParent{
+        height: 34px;
+        width: 100%;
+        margin: 10px;
+      }
+
+      .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0,0,0); /* Fallback color */
+        background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        -webkit-animation-name: fadeIn; /* Fade in the background */
+        -webkit-animation-duration: 0.4s;
+        animation-name: fadeIn;
+        animation-duration: 0.4s
+      }
+      /* Modal Content */
+.modal-content {
+    position: fixed;
+    bottom: 0;
+    background-color: #fefefe;
+    width: 100%;
+    -webkit-animation-name: slideIn;
+    -webkit-animation-duration: 0.4s;
+    animation-name: slideIn;
+    animation-duration: 0.4s
+    }
+      @-webkit-keyframes slideIn {
+            from {bottom: -300px; opacity: 0} 
+            to {bottom: 0; opacity: 1}
+        }
+
+        @keyframes slideIn {
+            from {bottom: -300px; opacity: 0}
+            to {bottom: 0; opacity: 1}
+        }
+
+        @-webkit-keyframes fadeIn {
+            from {opacity: 0} 
+            to {opacity: 1}
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0} 
+            to {opacity: 1}
+        }
 </style>
+
+<!-- The Modal -->
+<div id='myModal' class='modal'>
+    <div class='modal-content'>
+        <form action='/setRule' class='ruler'>
+            <input name='num' id='idInput' style='display:none'/>
+            <input type='time' name='min'/>
+            <input type='time' name='max'/>
+            <input type='submit' value='Valider'>
+        </form>
+    </div>
+</div>
+  
+
 <div>
     <span class='content-title'>Etats des prises</span>
-    <div>
-        <div class='prise' id='p1'>
+    <div class='priseParent'>
+        <div class='prise'>
             <label class='switch'>
-                <input type='checkbox' id='c1' onclick='swap(event, 0)' {{{ischecked}}}>
+                <input type='checkbox' onclick='swap(event, 0)' {{{ischecked0}}}>
                 <span class='slider round'></span>
             </label>
-            <span>Details</span>
         </div>
+        <button onclick='openParam(0)'>+</button>
+    </div>
+    <div class='priseParent'>
+        <div class='prise'>
+            <label class='switch'>
+                <input type='checkbox' onclick='swap(event, 1)' {{{ischecked1}}}>
+                <span class='slider round'></span>
+            </label>
+        </div>
+        <button onclick='openParam(1)'>+</button>
+    </div>
+    <div class='priseParent'>
+        <div class='prise'>
+            <label class='switch'>
+                <input type='checkbox' onclick='swap(event, 2)' {{{ischecked2}}}>
+                <span class='slider round'></span>
+            </label>
+        </div>
+        <button onclick='openParam(2)'>+</button>
+    </div>
+    <div class='priseParent'>
+        <div class='prise'>
+            <label class='switch'>
+                <input type='checkbox' onclick='swap(event, 3)' {{{ischecked3}}}>
+                <span class='slider round'></span>
+            </label>
+        </div>
+        <button onclick='openParam(3)'>+</button>
+    </div>
+    <div class='priseParent'>
+        <div class='prise'>
+            <label class='switch'>
+                <input type='checkbox' onclick='swap(event, 4)' {{{ischecked4}}}>
+                <span class='slider round'></span>
+            </label>
+        </div>
+        <button onclick='openParam(4)'>+</button>
+    </div>
+    <div class='priseParent'>
+        <div class='prise'>
+            <label class='switch'>
+                <input type='checkbox' onclick='swap(event, 5)' {{{ischecked5}}}>
+                <span class='slider round'></span>
+            </label>
+        </div>
+        <button onclick='openParam(5)'>+</button>
     </div>
 </div>
 
 <script>
+    var modal = document.getElementById('myModal');
+    var modalContent = document.getElementById('modal-content');
+
+    function openParam(i){
+        document.getElementById('idInput').value = i;    
+        modal.style.display = 'block';
+    }
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
     function swap(e, i){
         var payload = {
                 num : i, 
